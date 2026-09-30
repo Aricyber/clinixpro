@@ -38,15 +38,30 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 NEXT_PUBLIC_APP_NAME=ClinixPro
 NEXT_PUBLIC_APP_ENV=development
+ASAAS_ENVIRONMENT=sandbox
+ASAAS_API_KEY=
+ASAAS_WEBHOOK_TOKEN=
 ```
 
 Configure `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` no `.env.local`.
 Nunca use `SUPABASE_SERVICE_ROLE_KEY` no navegador ou em variáveis com prefixo `NEXT_PUBLIC_`.
 
+## Assinatura SaaS com Asaas
+
+O plano padrão custa R$ 99,90 por clínica/mês, com 14 dias gratuitos e 10 dias de tolerância após o vencimento. O proprietário cria a assinatura pela tela `/billing`; o Asaas oferece cartão, Pix ou boleto na cobrança e os webhooks liberam ou suspendem o acesso automaticamente.
+
+1. Crie primeiro uma conta no Sandbox do Asaas e copie a chave de API para `ASAAS_API_KEY`.
+2. Gere um token longo e aleatório para `ASAAS_WEBHOOK_TOKEN`.
+3. No Asaas, cadastre o webhook `https://SEU-DOMINIO/api/webhooks/asaas`, informe o mesmo token e ative o envio sequencial.
+4. Selecione os eventos `PAYMENT_CREATED`, `PAYMENT_UPDATED`, `PAYMENT_CONFIRMED`, `PAYMENT_RECEIVED`, `PAYMENT_OVERDUE`, `PAYMENT_DELETED`, `PAYMENT_REFUNDED`, `PAYMENT_CHARGEBACK_REQUESTED`, `SUBSCRIPTION_INACTIVATED` e `SUBSCRIPTION_DELETED`.
+5. Valide o fluxo no Sandbox antes de trocar `ASAAS_ENVIRONMENT` para `production` e usar a chave de produção.
+
+`SUPABASE_SERVICE_ROLE_KEY`, `ASAAS_API_KEY` e `ASAAS_WEBHOOK_TOKEN` são segredos exclusivos do servidor. Configure-os também no ambiente de hospedagem e nunca use o prefixo `NEXT_PUBLIC_` neles.
+
 ## Preparar o banco Supabase
 
 1. Crie um projeto no Supabase.
-2. Abra o SQL Editor do projeto e execute `supabase/migrations/202609260001_initial_schema.sql`.
+2. Abra o SQL Editor do projeto e execute, em ordem, os arquivos de `supabase/migrations/`.
 3. Configure as variáveis públicas do Supabase no `.env.local` e reinicie o servidor.
 4. O provisionamento inicial da clínica deve ser feito pelo usuário autenticado usando a função `create_clinic_for_current_user`.
 

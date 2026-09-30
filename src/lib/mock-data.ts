@@ -28,6 +28,7 @@ export const sessionUser: SessionUser = {
   name: "Aline Martins",
   email: "aline@clinixpro.com.br",
   role: "OWNER",
+  subscriptionStatus: "ACTIVE",
 };
 
 export const patients: Patient[] = [

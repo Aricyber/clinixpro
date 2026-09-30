@@ -1,4 +1,4 @@
-import type { ClinicType, Role, SessionUser } from "@/types";
+import type { ClinicType, Role, SessionUser, SubscriptionStatus } from "@/types";
 import { sessionUser as demoSessionUser } from "@/lib/mock-data";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { normalizeClinicSlug } from "@/lib/tenant";
@@ -36,6 +36,9 @@ type SupabaseProfile = {
   clinics: {
     name: string;
     clinic_type: ClinicType;
+    subscription_status: SubscriptionStatus;
+    trial_ends_at: string | null;
+    grace_period_ends_at: string | null;
   } | null;
 };
 
@@ -87,7 +90,7 @@ async function getSupabaseProfile(userId: string): Promise<AuthResult> {
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, clinic_id, full_name, email, role, clinics(name, clinic_type)")
+    .select("id, clinic_id, full_name, email, role, clinics(name, clinic_type, subscription_status, trial_ends_at, grace_period_ends_at)")
     .eq("id", userId)
     .maybeSingle();
 
@@ -114,6 +117,9 @@ async function getSupabaseProfile(userId: string): Promise<AuthResult> {
     name: profile.full_name,
     email: profile.email,
     role: profile.role,
+    subscriptionStatus: clinic.subscription_status,
+    trialEndsAt: clinic.trial_ends_at ?? undefined,
+    gracePeriodEndsAt: clinic.grace_period_ends_at ?? undefined,
   };
 
   saveStoredSession(user);

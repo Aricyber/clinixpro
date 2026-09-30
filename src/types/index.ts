@@ -3,6 +3,7 @@ export type ClinicType = "odontology" | "physiotherapy";
 export type AppointmentStatus = "SCHEDULED" | "CONFIRMED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
 export type PaymentStatus = "PENDING" | "PAID" | "OVERDUE" | "CANCELLED";
 export type PaymentMethod = "PIX" | "CASH" | "DEBIT_CARD" | "CREDIT_CARD" | "TRANSFER";
+export type SubscriptionStatus = "TRIALING" | "ACTIVE" | "PAST_DUE" | "SUSPENDED" | "CANCELLED";
 
 export interface Clinic {
   id: string;
@@ -25,6 +26,9 @@ export interface SessionUser {
   name: string;
   email: string;
   role: Role;
+  subscriptionStatus: SubscriptionStatus;
+  trialEndsAt?: string;
+  gracePeriodEndsAt?: string;
 }
 
 export interface Patient {

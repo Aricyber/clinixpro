@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   Activity,
+  BadgeDollarSign,
   BriefcaseBusiness,
   Building2,
   CalendarDays,
@@ -25,6 +26,7 @@ import {
   signOutUser,
 } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
+import { effectiveSubscriptionStatus, hasSubscriptionAccess } from "@/lib/billing";
 import type { SessionUser } from "@/types";
 
 const navItems = [
@@ -36,6 +38,7 @@ const navItems = [
   { href: "/medical-records", label: "Prontuários", icon: ClipboardList, permission: "accessMedicalRecords" },
   { href: "/finance", label: "Financeiro", icon: CreditCard, permission: "manageFinance" },
   { href: "/settings", label: "Configurações", icon: Settings, permission: "manageSettings" },
+  { href: "/billing", label: "Assinatura", icon: BadgeDollarSign, ownerOnly: true },
 ] as const;
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -51,6 +54,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       if (pathname !== "/login" && !currentSession) {
         router.replace("/login");
+        return;
+      }
+
+      if (currentSession && pathname !== "/billing" && !hasSubscriptionAccess(currentSession)) {
+        router.replace("/billing");
       }
     }
 
@@ -60,8 +68,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const activeSession = session ?? getDefaultSessionUser();
 
   const visibleNavItems = navItems.filter(
-    (item) => !("permission" in item) || hasPermission(activeSession.role, item.permission),
+    (item) => (!("permission" in item) || hasPermission(activeSession.role, item.permission))
+      && (!("ownerOnly" in item) || !item.ownerOnly || activeSession.role === "OWNER"),
   );
+  const subscriptionStatus = effectiveSubscriptionStatus(activeSession);
+  const subscriptionActive = hasSubscriptionAccess(activeSession);
 
   const handleLogout = async () => {
     await signOutUser();
@@ -156,9 +167,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1.5 text-sm font-medium text-emerald-700">
+                <div className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium ${subscriptionActive ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>
                   <Activity size={14} />
-                  Operação ativa
+                  {subscriptionStatus === "TRIALING" ? "Período gratuito" : subscriptionActive ? "Operação ativa" : "Acesso suspenso"}
                 </div>
               </div>
             </div>

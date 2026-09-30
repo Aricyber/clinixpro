@@ -84,6 +84,7 @@ export default function PatientsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   useEffect(() => {
     let isMounted = true;
@@ -106,6 +107,10 @@ export default function PatientsPage() {
           return;
         }
 
+        if (isMounted) {
+          setClinicId(session.clinicId);
+        }
+
         const { data, error: queryError } = await supabase
           .from("patients")
           .select("*")
@@ -117,7 +122,6 @@ export default function PatientsPage() {
         }
 
         if (isMounted) {
-          setClinicId(session.clinicId);
           setRecords((data ?? []).map((row) => mapPatient(row as unknown as PatientRow)));
           setIsLoading(false);
         }
@@ -160,11 +164,15 @@ export default function PatientsPage() {
   const handleOpenNew = () => {
     setForm(emptyForm());
     setEditingId(null);
+    setError("");
+    setSuccess("");
     setIsFormOpen(true);
   };
 
   const handleEdit = (patient: Patient) => {
     setEditingId(patient.id);
+    setError("");
+    setSuccess("");
     setForm({
       fullName: patient.fullName,
       birthDate: patient.birthDate,
@@ -257,13 +265,19 @@ export default function PatientsPage() {
     const now = new Date().toISOString();
     setIsSaving(true);
     setError("");
+    setSuccess("");
 
     try {
       if (isSupabaseConfigured() && supabase) {
-        if (!clinicId) {
-          setError("Não foi possível identificar a clínica atual.");
+        const session = await getCurrentSessionUser();
+
+        if (!session) {
+          setError("Sua sessão expirou. Entre novamente antes de salvar o paciente.");
           return;
         }
+
+        const currentClinicId = session.clinicId;
+        setClinicId(currentClinicId);
 
         const patientData = {
           full_name: trimmedFullName,
@@ -285,17 +299,20 @@ export default function PatientsPage() {
               .from("patients")
               .update(patientData)
               .eq("id", editingId)
-              .eq("clinic_id", clinicId)
+              .eq("clinic_id", currentClinicId)
               .select("*")
               .single()
           : await supabase
               .from("patients")
-              .insert({ ...patientData, clinic_id: clinicId })
+              .insert({ ...patientData, clinic_id: currentClinicId })
               .select("*")
               .single();
 
         if (result.error || !result.data) {
-          setError("Não foi possível salvar o paciente. Verifique os dados e suas permissões.");
+          const permissionDenied = result.error?.code === "42501";
+          setError(permissionDenied
+            ? "Seu perfil não tem permissão para salvar pacientes nesta clínica."
+            : `Não foi possível salvar o paciente${result.error?.message ? `: ${result.error.message}` : "."}`);
           return;
         }
 
@@ -303,6 +320,7 @@ export default function PatientsPage() {
         setRecords((current) => editingId
           ? current.map((patient) => patient.id === editingId ? savedPatient : patient)
           : [savedPatient, ...current]);
+        setSuccess(editingId ? "Paciente atualizado com sucesso." : "Paciente salvo com sucesso.");
         resetForm();
         return;
       }
@@ -350,6 +368,7 @@ export default function PatientsPage() {
         setRecords((current) => [newPatient, ...current]);
       }
 
+      setSuccess(editingId ? "Paciente atualizado nesta demonstração." : "Paciente salvo nesta demonstração.");
       resetForm();
     } catch {
       setError("Não foi possível salvar o paciente. Tente novamente.");
@@ -379,6 +398,11 @@ export default function PatientsPage() {
         {error ? (
           <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
             {error}
+          </p>
+        ) : null}
+        {success ? (
+          <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            {success}
           </p>
         ) : null}
 
